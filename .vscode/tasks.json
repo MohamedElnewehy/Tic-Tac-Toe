@@ -1,0 +1,45 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-g",
+                "${file}",
+                "${workspaceFolder}/sqlite/sqlite3.o",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}.exe",
+                "-I",
+                "${workspaceFolder}/sqlite"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "dependsOn": [
+                "compile_sqlite"
+            ]
+        },
+        {
+            "label": "compile_sqlite",
+            "type": "shell",
+            "command": "gcc",
+            "args": [
+                "-c",
+                "${workspaceFolder}/sqlite/sqlite3.c",
+                "-o",
+                "${workspaceFolder}/sqlite/sqlite3.o",
+                "-I",
+                "${workspaceFolder}/sqlite"
+            ],
+            "problemMatcher": [
+                "$gcc"
+            ]
+        }
+    ]
+}
