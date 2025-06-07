@@ -1,0 +1,42 @@
+# depslib dependency file v1.0
+1749334303 source:g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\ai_engine.cpp
+	"ai_engine.h"
+	<iostream>
+
+1749334319 g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\ai_engine.h
+	<cstdlib>
+	<ctime>
+	<algorithm>
+	<vector>
+
+1749334371 source:g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\classic_game.cpp
+	"classic_game.h"
+
+1749334382 g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\classic_game.h
+	"game_core.h"
+
+1749334426 g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\game_core.h
+	<iostream>
+	<vector>
+
+1749334408 source:g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\game_core.cpp
+	"game_core.h"
+
+1749334230 source:g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\main.cpp
+	"menu.h"
+
+1749334273 g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\menu.h
+
+1749334252 source:g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\menu.cpp
+	"menu.h"
+	"classic_game.h"
+	"overwrite_game.h"
+	"ai_engine.h"
+	<iostream>
+
+1749334357 g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\overwrite_game.h
+	"game_core.h"
+
+1749334346 source:g:\faculty\second year\second term\embedded\omar nasr\codes\lec 2\tictactoe\overwrite_game.cpp
+	"overwrite_game.h"
+
