@@ -142,7 +142,7 @@ clearboard(board);
 EXPECT_GT(medium_wins_counter,50);
 EXPECT_LT(50,medium_wins_counter);
 }
-TEST(AI,MEDIUM_HARD)//here it tests the fact that medium is harder than easy
+TEST(AI,MEDIUM_HARD)//here it tests the fact that hard is harder than medium
 {
 char board[SIZE][SIZE] = {' ',' ',' ',
                           ' ',' ',' ',
