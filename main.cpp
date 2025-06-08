@@ -2,7 +2,7 @@
 #include <string>
 #include <sqlite3.h>
 #include <vector>
-#include "picosha2.h" // Download and include from https://github.com/okdshin/PicoSHA2
+#include "picosha2.h" 
 
 using namespace std;
 
@@ -31,6 +31,13 @@ public:
             throw runtime_error("Failed to open database");
         }
 
+        // Enable foreign key support
+        executeSQL("PRAGMA foreign_keys = ON;");
+
+        // Drop tables if they already exist (to ensure ON DELETE CASCADE takes effect)
+        executeSQL("DROP TABLE IF EXISTS games;");
+        executeSQL("DROP TABLE IF EXISTS users;");
+
         executeSQL("CREATE TABLE IF NOT EXISTS users ("
                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
                    "username TEXT UNIQUE NOT NULL, "
@@ -43,8 +50,8 @@ public:
                    "winner INTEGER, "
                    "moves TEXT, "
                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, "
-                   "FOREIGN KEY(player1_id) REFERENCES users(id), "
-                   "FOREIGN KEY(player2_id) REFERENCES users(id));");
+                   "FOREIGN KEY(player1_id) REFERENCES users(id) ON DELETE CASCADE, "
+                   "FOREIGN KEY(player2_id) REFERENCES users(id) ON DELETE CASCADE);");
     }
 
     ~TicTacToeDB() {
@@ -105,6 +112,27 @@ public:
 
         sqlite3_finalize(stmt);
         return false;
+    }
+
+    bool deleteUser(const string& username) {
+        sqlite3_stmt* stmt;
+        string sql = "DELETE FROM users WHERE username = ?";
+
+        if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+            cerr << "Failed to prepare delete statement\n";
+            return false;
+        }
+
+        sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_TRANSIENT);
+
+        bool success = sqlite3_step(stmt) == SQLITE_DONE;
+
+        if (!success) {
+            cerr << "Failed to delete user or user not found\n";
+        }
+
+        sqlite3_finalize(stmt);
+        return success;
     }
 
     void saveGame(int player1Id, int player2Id, int winner, const vector<string>& moves) {
@@ -196,6 +224,14 @@ int main() {
             if (!history.empty()) {
                 cout << "Last game moves: " << history[0].moves << "\n";
             }
+
+            // Try deleting player2
+            if (db.deleteUser("player2")) {
+                cout << "User 'player2' and their games were deleted successfully.\n";
+            } else {
+                cout << "Failed to delete user.\n";
+            }
+
         } else {
             cout << "Invalid login\n";
         }
