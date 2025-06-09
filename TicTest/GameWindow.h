@@ -21,6 +21,10 @@ public:
     explicit GameWindow(const QString &gameMode, QWidget *parent = nullptr);
     ~GameWindow();
 
+    // User management methods
+    void setCurrentUser(const QString& username, int userId);
+    void setPlayer2(const QString& username, int userId);
+
 private slots:
     void cellClicked();
     void resetGame();
@@ -47,11 +51,18 @@ private:
 
     QPushButton *resetBtn;
     QPushButton *backBtn;
-    QPushButton *gridButtons[3][3];  // تصحيح: إضافة الأبعاد
+    QPushButton *gridButtons[3][3];
 
     // Game variables
     int aiDifficulty;
     bool isAIGame;
+
+    // User management
+    QString currentUsername;
+    QString player2Username;
+    int currentUserId;
+    int player2Id;
+    bool gameEnded;
 };
 
 #endif

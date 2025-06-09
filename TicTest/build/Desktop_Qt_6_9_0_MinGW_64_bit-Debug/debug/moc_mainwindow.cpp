@@ -49,7 +49,7 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "startMediumAI",
         "startHardAI",
         "showGameHistory",
-        "showSettings"
+        "showLogin"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -69,7 +69,7 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SlotData<void()>(8, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'showGameHistory'
         QtMocHelpers::SlotData<void()>(9, 2, QMC::AccessPrivate, QMetaType::Void),
-        // Slot 'showSettings'
+        // Slot 'showLogin'
         QtMocHelpers::SlotData<void()>(10, 2, QMC::AccessPrivate, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
@@ -102,7 +102,7 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 5: _t->startMediumAI(); break;
         case 6: _t->startHardAI(); break;
         case 7: _t->showGameHistory(); break;
-        case 8: _t->showSettings(); break;
+        case 8: _t->showLogin(); break;
         default: ;
         }
     }

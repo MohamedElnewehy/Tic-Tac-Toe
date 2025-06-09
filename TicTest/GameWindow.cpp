@@ -1,7 +1,10 @@
 #include "GameWindow.h"
+#include "GameHistoryManager.h"
+#include "overwrite_game.h"
 
 GameWindow::GameWindow(const QString &gameMode, QWidget *parent)
-    : QWidget(parent), currentGameMode(gameMode), aiDifficulty(1), isAIGame(false)
+    : QWidget(parent), currentGameMode(gameMode), aiDifficulty(1), isAIGame(false),
+    currentUserId(-1), player2Id(-1), gameEnded(false)
 {
     if (gameMode.contains("AI")) {
         isAIGame = true;
@@ -18,6 +21,25 @@ GameWindow::~GameWindow()
 {
 }
 
+void GameWindow::setCurrentUser(const QString& username, int userId)
+{
+    currentUsername = username;
+    currentUserId = userId;
+
+    // Start recording game for history
+    if (userId != -1) {
+        GameHistoryManager* historyManager = GameHistoryManager::getInstance();
+        historyManager->startNewGame(currentGameMode.toStdString(), userId,
+                                     isAIGame ? -1 : player2Id);
+    }
+}
+
+void GameWindow::setPlayer2(const QString& username, int userId)
+{
+    player2Username = username;
+    player2Id = userId;
+}
+
 void GameWindow::setupUI()
 {
     setWindowTitle("Tic Tac Toe - " + currentGameMode);
@@ -27,7 +49,7 @@ void GameWindow::setupUI()
     mainLayout->setSpacing(12);
     mainLayout->setContentsMargins(25, 20, 25, 25);
 
-    // Title Section - ألوان محسنة
+    // Title Section
     titleLabel = new QLabel(currentGameMode);
     titleLabel->setAlignment(Qt::AlignCenter);
     titleLabel->setFixedHeight(50);
@@ -44,7 +66,7 @@ void GameWindow::setupUI()
         "}"
         );
 
-    // Status Section - أصغر وأكثر أناقة
+    // Status Section
     statusLabel = new QLabel("Player X's Turn");
     statusLabel->setAlignment(Qt::AlignCenter);
     statusLabel->setFixedHeight(32);
@@ -61,7 +83,7 @@ void GameWindow::setupUI()
         "}"
         );
 
-    // Game Board Container - تحسين الألوان
+    // Game Board Container
     QFrame *boardContainer = new QFrame();
     boardContainer->setFixedSize(350, 350);
     boardContainer->setStyleSheet(
@@ -80,7 +102,7 @@ void GameWindow::setupUI()
     gridLayout->setSpacing(5);
     gridLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Create 3x3 grid - تحسين المربعات
+    // Create 3x3 grid
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
             gridButtons[i][j] = new QPushButton();
@@ -114,7 +136,7 @@ void GameWindow::setupUI()
         }
     }
 
-    // Control Buttons - تحسين كبير للظهور
+    // Control Buttons
     QWidget *controlWidget = new QWidget();
     controlWidget->setFixedHeight(70);
     controlWidget->setStyleSheet("QWidget { background-color: transparent; }");
@@ -179,7 +201,7 @@ void GameWindow::setupUI()
     buttonLayout->addWidget(resetBtn);
     buttonLayout->addWidget(backBtn);
 
-    // Add all with better spacing
+    // Add all components to main layout
     mainLayout->addWidget(titleLabel);
     mainLayout->addWidget(statusLabel);
     mainLayout->addSpacing(8);
@@ -188,7 +210,7 @@ void GameWindow::setupUI()
     mainLayout->addWidget(controlWidget);
     mainLayout->addSpacing(5);
 
-    // خلفية محسنة
+    // Background styling
     setStyleSheet(
         "QWidget {"
         "background-color: #f8f9fa;"
@@ -199,31 +221,58 @@ void GameWindow::setupUI()
 void GameWindow::cellClicked()
 {
     QPushButton *button = qobject_cast<QPushButton*>(sender());
-    if (!button || !game.gameActive) return;
+    if (!button || !game.gameActive || gameEnded) return;
 
     int row = button->property("row").toInt();
     int col = button->property("col").toInt();
 
-    // Check if cell is already occupied (except for overwrite mode)
-    if (currentGameMode != "Overwrite Mode" && game.board[row][col] != ' ') {
-        return;
-    }
-
-    // Make move
     bool moveSuccess = false;
-    if (currentGameMode == "Overwrite Mode") {
-        moveSuccess = makeMove(&game, row, col, true);
+
+    // Handle different game modes
+    if (currentGameMode.contains("Overwrite")) {
+        // For overwrite mode, check if move is valid
+        if (game.board[row][col] != ' ') {
+            // Check if we can overwrite (not opponent's last move)
+            LastMoves lastMoves; // You'll need to maintain this state
+            if (canOverwrite(&game, &lastMoves, row, col)) {
+                moveSuccess = makeMove(&game, row, col, true);
+                if (moveSuccess) {
+                    if (game.currentPlayer == 'X') {
+                        lastMoves.lastPlayerXRow = row;
+                        lastMoves.lastPlayerXCol = col;
+                    } else {
+                        lastMoves.lastPlayerORow = row;
+                        lastMoves.lastPlayerOCol = col;
+                    }
+                }
+            } else {
+                QMessageBox::warning(this, "Invalid Move", "Cannot overwrite opponent's last move!");
+                return;
+            }
+        } else {
+            moveSuccess = makeMove(&game, row, col, true);
+        }
     } else {
+        // Classic mode and AI mode
+        if (game.board[row][col] != ' ') {
+            return; // Cell already occupied
+        }
         moveSuccess = makeMove(&game, row, col, false);
     }
 
     if (!moveSuccess) return;
 
+    // Record move for history
+    if (currentUserId != -1) {
+        GameHistoryManager* historyManager = GameHistoryManager::getInstance();
+        historyManager->recordMove(game.currentPlayer, row, col);
+    }
+
     updateCell(row, col);
     checkGameEnd();
 
-    // AI move with delay for better UX
-    if (game.gameActive && isAIGame && game.currentPlayer == 'O') {
+    // Handle AI move with delay for better UX
+    if (game.gameActive && !gameEnded && isAIGame && game.currentPlayer == 'O') {
         statusLabel->setText("🤖 AI is thinking...");
         statusLabel->setStyleSheet(
             "QLabel {"
@@ -278,19 +327,33 @@ void GameWindow::updateCell(int row, int col)
 
 void GameWindow::checkGameEnd()
 {
+    if (gameEnded) return;
+
+    GameHistoryManager* historyManager = GameHistoryManager::getInstance();
+
     if (checkWin(&game)) {
+        gameEnded = true;
         QString winner;
         QString winnerColor;
+        int winnerId = 0;
 
         if (game.currentPlayer == 'X') {
             winner = "🎉 Player X Wins!";
             winnerColor = "#28a745";
+            winnerId = currentUserId;
         } else if (isAIGame && game.currentPlayer == 'O') {
             winner = "🤖 AI Wins!";
             winnerColor = "#dc3545";
+            winnerId = -1;
         } else {
             winner = "🎉 Player O Wins!";
             winnerColor = "#28a745";
+            winnerId = player2Id != -1 ? player2Id : currentUserId;
+        }
+
+        // Save game result to history
+        if (currentUserId != -1) {
+            historyManager->saveGameResult(winnerId);
         }
 
         statusLabel->setText(winner);
@@ -307,10 +370,44 @@ void GameWindow::checkGameEnd()
                     "}").arg(winnerColor)
             );
 
-        QMessageBox::information(this, "🎮 Game Over", winner);
+        // Create custom styled message box
+        QMessageBox *gameOverBox = new QMessageBox(this);
+        gameOverBox->setWindowTitle("🎮 Game Over");
+        gameOverBox->setText(winner);
+        gameOverBox->setStandardButtons(QMessageBox::Ok);
+        gameOverBox->setStyleSheet(
+            "QMessageBox {"
+            "background-color: #f8f9fa;"
+            "border-radius: 10px;"
+            "}"
+            "QMessageBox QLabel {"
+            "color: #2c3e50;"
+            "font-size: 16px;"
+            "font-weight: bold;"
+            "font-family: 'Segoe UI', Arial, sans-serif;"
+            "padding: 20px;"
+            "}"
+            "QPushButton {"
+            "background-color: #007bff;"
+            "color: white;"
+            "border: none;"
+            "border-radius: 6px;"
+            "padding: 8px 20px;"
+            "font-size: 14px;"
+            "font-weight: bold;"
+            "min-width: 80px;"
+            "}"
+            "QPushButton:hover {"
+            "background-color: #0056b3;"
+            "}"
+            );
+
+        gameOverBox->exec();
+        delete gameOverBox;
+
         game.gameActive = false;
 
-        // Disable all buttons with visual feedback
+        // Disable all buttons
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 gridButtons[i][j]->setEnabled(false);
@@ -323,6 +420,13 @@ void GameWindow::checkGameEnd()
     }
 
     if (checkDraw(&game)) {
+        gameEnded = true;
+
+        // Save draw result to history
+        if (currentUserId != -1) {
+            historyManager->saveGameResult(0);
+        }
+
         statusLabel->setText("🤝 It's a Draw!");
         statusLabel->setStyleSheet(
             "QLabel {"
@@ -337,7 +441,41 @@ void GameWindow::checkGameEnd()
             "}"
             );
 
-        QMessageBox::information(this, "🎮 Game Over", "🤝 It's a Draw!");
+        // Create custom styled draw message box
+        QMessageBox *drawBox = new QMessageBox(this);
+        drawBox->setWindowTitle("🎮 Game Over");
+        drawBox->setText("🤝 It's a Draw!");
+        drawBox->setStandardButtons(QMessageBox::Ok);
+        drawBox->setStyleSheet(
+            "QMessageBox {"
+            "background-color: #f8f9fa;"
+            "border-radius: 10px;"
+            "}"
+            "QMessageBox QLabel {"
+            "color: #2c3e50;"
+            "font-size: 16px;"
+            "font-weight: bold;"
+            "font-family: 'Segoe UI', Arial, sans-serif;"
+            "padding: 20px;"
+            "}"
+            "QPushButton {"
+            "background-color: #fd7e14;"
+            "color: white;"
+            "border: none;"
+            "border-radius: 6px;"
+            "padding: 8px 20px;"
+            "font-size: 14px;"
+            "font-weight: bold;"
+            "min-width: 80px;"
+            "}"
+            "QPushButton:hover {"
+            "background-color: #e8690b;"
+            "}"
+            );
+
+        drawBox->exec();
+        delete drawBox;
+
         game.gameActive = false;
         return;
     }
@@ -379,12 +517,19 @@ void GameWindow::updateStatusLabel()
 
 void GameWindow::makeAIMove()
 {
-    if (!game.gameActive) return;
+    if (!game.gameActive || gameEnded) return;
 
     AIMove aiMove = getAIMove(&game, static_cast<AILevel>(aiDifficulty));
 
     if (aiMove.row != -1 && aiMove.col != -1) {
         makeMove(&game, aiMove.row, aiMove.col, false);
+
+        // Record AI move for history
+        if (currentUserId != -1) {
+            GameHistoryManager* historyManager = GameHistoryManager::getInstance();
+            historyManager->recordMove('O', aiMove.row, aiMove.col);
+        }
+
         updateCell(aiMove.row, aiMove.col);
         checkGameEnd();
     }
@@ -392,7 +537,16 @@ void GameWindow::makeAIMove()
 
 void GameWindow::resetGame()
 {
+    // Clear current game and start new one for history
+    if (currentUserId != -1) {
+        GameHistoryManager* historyManager = GameHistoryManager::getInstance();
+        historyManager->clearCurrentGame();
+        historyManager->startNewGame(currentGameMode.toStdString(), currentUserId,
+                                     isAIGame ? -1 : player2Id);
+    }
+
     initializeBoard(&game);
+    gameEnded = false;
 
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {

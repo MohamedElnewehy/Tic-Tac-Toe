@@ -1,0 +1,13 @@
+debug/GameHistoryManager.o
+debug/GameWindow.o
+debug/TicTacToeDB.o
+debug/ai_game.o
+debug/classic_game.o
+debug/historywindow.o
+debug/main.o
+debug/mainwindow.o
+debug/overwrite_game.o
+debug/sqlite3.o
+debug/moc_GameWindow.o
+debug/moc_historywindow.o
+debug/moc_mainwindow.o

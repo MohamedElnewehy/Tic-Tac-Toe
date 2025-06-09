@@ -1,0 +1,13 @@
+release/GameHistoryManager.o
+release/GameWindow.o
+release/TicTacToeDB.o
+release/ai_game.o
+release/classic_game.o
+release/historywindow.o
+release/main.o
+release/mainwindow.o
+release/overwrite_game.o
+release/sqlite3.o
+release/moc_GameWindow.o
+release/moc_historywindow.o
+release/moc_mainwindow.o
