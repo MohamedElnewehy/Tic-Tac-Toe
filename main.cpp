@@ -11,7 +11,7 @@ string sha256Hash(const string& input) {
     return picosha2::hash256_hex_string(input);
 }
 
-// Simple database wrapper
+// THE DATABASE CLASS
 class TicTacToeDB {
 private:
     sqlite3* db;
@@ -28,8 +28,7 @@ public:
     TicTacToeDB() {
         if (sqlite3_open("tictactoe.db", &db) != SQLITE_OK) {
             throw runtime_error("Failed to open database");
-        }
-
+        } //constructor that  creates the database and tables
         // Enable foreign key support
         executeSQL("PRAGMA foreign_keys = ON;");
 
@@ -52,13 +51,11 @@ public:
                    "FOREIGN KEY(player1_id) REFERENCES users(id) ON DELETE CASCADE, "
                    "FOREIGN KEY(player2_id) REFERENCES users(id) ON DELETE CASCADE);");
     }
-
-    /*destructor, doesn't need testing*/
+    // Destructor to close the database connection
     ~TicTacToeDB() {
         sqlite3_close(db);
     }
-
-    /*testing that if I allocate a user into the database it will be stored*/
+/*creatuser takes 2 strings one for the username and one for password to creat new user in the data base*/
     bool createUser(const string& username, const string& password) {
         sqlite3_stmt* stmt;
 
@@ -93,7 +90,7 @@ public:
         sqlite3_finalize(stmt);
         return result;
     }
-
+// this function validates the user by checking on the username and password
     bool validateUser(const string& username, const string& password) {
         sqlite3_stmt* stmt;
         string sql = "SELECT password_hash FROM users WHERE username = ?";
@@ -114,7 +111,8 @@ public:
         sqlite3_finalize(stmt);
         return false;
     }
-
+// this function deletes the user and removes all their games from the database 
+// it returns true if the user was deleted successfully, false otherwise
     bool deleteUser(const string& username) {
         sqlite3_stmt* stmt;
         string sql = "DELETE FROM users WHERE username = ?";
@@ -143,7 +141,8 @@ public:
         // User was deleted successfully
         return true;
     }
-
+// this function takes two integers for player1 and player2 ids, an integer for the winner id,
+// and a vector of strings for the moves made during the game. It saves the game to the database.   
     void saveGame(int player1Id, int player2Id, int winner, const vector<string>& moves) {
         sqlite3_stmt* stmt;
         string sql = "INSERT INTO games (player1_id, player2_id, winner, moves) VALUES (?, ?, ?, ?)";
@@ -179,7 +178,8 @@ public:
         string moves;
         string timestamp;
     };
-
+// this function returns the last 10 games played by a user, identified by their userId.
+// moves is stored as a semicolon-separated string of moves.
     vector<GameRecord> getGameHistory(int userId) {
         vector<GameRecord> history;
         sqlite3_stmt* stmt;
