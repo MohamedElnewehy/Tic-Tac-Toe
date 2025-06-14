@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include <sqlite3.h>
+#include "sqlite/sqlite3.h"
 #include <vector>
 #include "picosha2.h" 
 
@@ -15,7 +15,6 @@ string sha256Hash(const string& input) {
 class TicTacToeDB {
 private:
     sqlite3* db;
-
     void executeSQL(const string& sql) {
         char* errMsg = nullptr;
         if (sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
@@ -54,10 +53,12 @@ public:
                    "FOREIGN KEY(player2_id) REFERENCES users(id) ON DELETE CASCADE);");
     }
 
+    /*destructor, doesn't need testing*/
     ~TicTacToeDB() {
         sqlite3_close(db);
     }
 
+    /*testing that if I allocate a user into the database it will be stored*/
     bool createUser(const string& username, const string& password) {
         sqlite3_stmt* stmt;
 
@@ -125,14 +126,22 @@ public:
 
         sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_TRANSIENT);
 
-        bool success = sqlite3_step(stmt) == SQLITE_DONE;
-
-        if (!success) {
-            cerr << "Failed to delete user or user not found\n";
+        if (sqlite3_step(stmt) != SQLITE_DONE) {
+            cerr << "Failed to delete user\n";
+            sqlite3_finalize(stmt);
+            return false;
         }
 
+        int rowsDeleted = sqlite3_changes(db);
         sqlite3_finalize(stmt);
-        return success;
+
+        if (rowsDeleted == 0) {
+            // No user with that username was found
+            return false;
+        }
+
+        // User was deleted successfully
+        return true;
     }
 
     void saveGame(int player1Id, int player2Id, int winner, const vector<string>& moves) {
@@ -231,7 +240,6 @@ int main() {
             } else {
                 cout << "Failed to delete user.\n";
             }
-
         } else {
             cout << "Invalid login\n";
         }
