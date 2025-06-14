@@ -32,9 +32,7 @@ public:
         // Enable foreign key support
         executeSQL("PRAGMA foreign_keys = ON;");
 
-        // Drop tables if they already exist (to ensure ON DELETE CASCADE takes effect)
-        executeSQL("DROP TABLE IF EXISTS games;");
-        executeSQL("DROP TABLE IF EXISTS users;");
+
 
         executeSQL("CREATE TABLE IF NOT EXISTS users ("
                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
