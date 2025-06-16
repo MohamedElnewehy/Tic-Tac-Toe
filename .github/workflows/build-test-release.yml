@@ -32,15 +32,13 @@ jobs:
     - name: Compile and Build Debug Test Executables
       run: |
         g++ testing_logic.cpp googletest/googletest/src/gtest-all.cc -o debug/testing_logic.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
-        g++ testing_database.cpp googletest/googletest/src/gtest-all.cc -o debug/testing_database.exe -Igoogletest/googletest/include -Igoogletest/googletest -lsqlite3 -lpicosha2 -pthread -std=c++17
+        g++ testing_database.cpp sqlite3.c googletest/googletest/src/gtest-all.cc -o debug/testing_database.exe -I. -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
         g++ testingAI.cpp googletest/googletest/src/gtest-all.cc -o debug/testingAI.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
         g++ testingOverwrite.cpp googletest/googletest/src/gtest-all.cc -o debug/testingOverwrite.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
       shell: bash
 
     - name: Run Tests (Google Test)
       run: |
-        echo "Listing contents of debug build directory:"
-        ls -F debug/
         echo "Running tests..."
         ./debug/testing_logic.exe --gtest_output="xml:test_results_logic.xml"
         ./debug/testing_database.exe --gtest_output="xml:test_results_database.xml"
@@ -57,7 +55,7 @@ jobs:
 
     - name: Compile and Build Main Application (Release)
       run: |
-        g++ main.cpp menu.cpp classic_game.cpp overwrite_game.cpp ai_engine.cpp game_core.cpp TicTacToeDB.cpp sqlite3.c -o release/TicTacToe.exe -O2 -I. -L. -lsqlite3 -lpicosha2 -pthread -std=c++17
+        g++ main.cpp menu.cpp classic_game.cpp overwrite_game.cpp ai_engine.cpp game_core.cpp TicTacToeDB.cpp sqlite3.c -o release/TicTacToe.exe -O2 -I. -pthread -std=c++17
       shell: bash
 
     - name: Package application for release
