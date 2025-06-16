@@ -31,10 +31,10 @@ jobs:
 
     - name: Compile and Build Debug Test Executables
       run: |
-        g++ testing_logic.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testing_logic.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
-        g++ testing_database.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testing_database.exe -Igoogletest/googletest/include -Igoogletest/googletest -lsqlite3 -lpicosha2 -pthread -std=c++17
-        g++ testingAI.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testingAI.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
-        g++ testingOverwrite.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testingOverwrite.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
+        g++ testing_logic.cpp googletest/googletest/src/gtest-all.cc -o debug/testing_logic.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
+        g++ testing_database.cpp googletest/googletest/src/gtest-all.cc -o debug/testing_database.exe -Igoogletest/googletest/include -Igoogletest/googletest -lsqlite3 -lpicosha2 -pthread -std=c++17
+        g++ testingAI.cpp googletest/googletest/src/gtest-all.cc -o debug/testingAI.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
+        g++ testingOverwrite.cpp googletest/googletest/src/gtest-all.cc -o debug/testingOverwrite.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
       shell: bash
 
     - name: Run Tests (Google Test)
