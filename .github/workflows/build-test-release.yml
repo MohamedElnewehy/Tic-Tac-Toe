@@ -1,4 +1,4 @@
-name: Console Tic Tac Toe CI/CD
+name: Console Tic Tac Toe CI/CD (No Qt)
 
 on:
   push:
@@ -12,53 +12,53 @@ on:
 
 jobs:
   build-test-release:
-    runs-on: windows-latest # Use the latest Windows environment for MSVC compatibility
+    runs-on: windows-latest # Use the latest Windows environment, which includes g++
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4 # Action to fetch your repository's code
 
-    - name: Setup MSVC Compiler Environment
-      # This action is specifically designed to correctly set up the Visual Studio
-      # development command prompt environment, making 'cl.exe' and 'nmake' available.
-      uses: ilammy/msvc-dev-cmd@v1
-
-    - name: Install Qt 6.8.3 (MSVC 2022 64-bit)
-      # Installs the specific Qt version and architecture you're using.
-      # This is based on your `qtdiag` output.
-      uses: jurplel/install-qt-action@v3
-      with:
-        version: '6.8.3'
-        target: desktop
-        arch: 'win64_msvc2022_64'
+    - name: Create build directories
+      # Create 'debug' for test executables and 'release' for the main game executable
+      run: |
+        mkdir -p debug
+        mkdir -p release
+      shell: bash
 
     # --- CI Part: Build Debug for Tests and Run Tests ---
 
-    - name: Configure project (Debug build for tests)
-      # Uses 'TicTest.pro' as confirmed. 'CONFIG+=debug' for a debug build.
-      # '-spec win32-msvc' is explicitly included as it worked previously with ilammy action.
-      run: qmake TicTest.pro -spec win32-msvc "CONFIG+=debug"
-      shell: cmd # Ensure this command runs in a cmd shell for proper environment
-
-    - name: Build project (Debug build for tests)
-      # 'nmake' is the build tool for MSVC.
-      run: nmake debug
-      shell: cmd # Ensure this command runs in a cmd shell
+    - name: Compile and Build Debug Test Executables
+      # Compiles each of your Google Test .cpp files into separate executables.
+      # Assumes 'g++' is available on the PATH (it is on Windows-latest runners with Git Bash).
+      # -g: includes debug information for testing
+      # -I.: includes current directory for headers
+      # -L.: links from current directory for libraries (like gtest)
+      # -lgtest -lgtest_main -pthread: standard linking for Google Test.
+      # -lsqlite3: links the SQLite library.
+      # -lpicosha2: links the PicoSHA2 library (assuming it's compiled or headers are available).
+      # -std=c++17: specifies C++17 standard.
+      # Adjust executable names if different from what your local build produces.
+      run: |
+        g++ testing_logic.cpp -o debug/testing_logic.exe -g -I. -L. -lgtest -lgtest_main -pthread -std=c++17
+        g++ testing_database.cpp -o debug/testing_database.exe -g -I. -L. -lsqlite3 -lpicosha2 -lgtest -lgtest_main -pthread -std=c++17
+        g++ testingAI.cpp -o debug/testingAI.exe -g -I. -L. -lgtest -lgtest_main -pthread -std=c++17
+        g++ testingOverwrite.cpp -o debug/testingOverwrite.exe -g -I. -L. -lgtest -lgtest_main -pthread -std=c++17
+      shell: bash # Use bash for consistent path and command execution
+      working-directory: ${{ github.workspace }} # Run commands from the repository root
 
     - name: Run Tests (Google Test)
-      # Executes each of your Google Test executables.
-      # Assumes they are built into the 'debug\' subdirectory of your project root.
-      # Ensure these names EXACTLY match what your local build produces.
+      # Executes each of your compiled Google Test executables.
+      # Errors in tests will cause this step to fail the workflow.
       run: |
         echo "Listing contents of debug build directory:"
-        ls -F debug/ # Use 'ls -F .' if executables are directly in build root
+        ls -F debug/
         echo "Attempting to run Google Tests..."
         .\debug\testing_logic.exe --gtest_output="xml:test_results_logic.xml"
         .\debug\testing_database.exe --gtest_output="xml:test_results_database.xml"
         .\debug\testingAI.exe --gtest_output="xml:test_results_AI.xml"
         .\debug\testingOverwrite.exe --gtest_output="xml:test_results_overwrite.xml"
-      shell: bash # Bash is suitable for 'ls' and managing multiple commands.
-      working-directory: ${{ github.workspace }} # Commands run from the repository root
+      shell: bash
+      working-directory: ${{ github.workspace }}
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v4 # Uploads the generated XML test reports
@@ -67,33 +67,21 @@ jobs:
         name: google-test-results
         path: "*.xml" # Path to your Google Test XML output files
 
-    # --- CD Part: Clean, Build Release, Deploy, Package, Upload ---
+    # --- CD Part: Build Release, Package, Upload ---
 
-    - name: Clean previous build artifacts
-      # Cleans the debug build output before starting the release build.
-      run: nmake clean
-      shell: cmd
-
-    - name: Configure project (Release build for deployment)
-      # Configures for a release build.
-      run: qmake TicTest.pro -spec win32-msvc "CONFIG+=release"
-      shell: cmd
-
-    - name: Build project (Release build for deployment)
-      run: nmake release
-      shell: cmd
-
-    - name: Deploy Qt dependencies (windeployqt)
-      # Gathers necessary Qt runtime DLLs and plugins for your application.
-      # Even for console apps, if they link Qt Core/Network/etc., this is important.
-      # 'TicTest.exe' is assumed to be your main application's executable name.
+    - name: Compile and Build Main Application (Release)
+      # Compiles your main game files into a single executable.
+      # Ensure ALL your C++ source files are listed here.
+      # '-O2' for optimization in release build.
+      # Includes 'sqlite3.c' directly in compilation as it's provided.
+      # Assumes 'picosha2.h' is a header-only library or linked implicitly.
       run: |
-        "C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe" TicTest.exe
-      working-directory: ${{ github.workspace }}\release # Execute from the release build directory
-      shell: cmd
+        g++ main.cpp menu.cpp classic_game.cpp overwrite_game.cpp ai_engine.cpp game_core.cpp TicTacToeDB.cpp sqlite3.c -o release/TicTacToe.exe -O2 -I. -L. -lsqlite3 -lpicosha2 -pthread -std=c++17
+      shell: bash
+      working-directory: ${{ github.workspace }}
 
     - name: Package application for release
-      # Creates a zip archive of the release build, including deployed Qt dependencies.
+      # Zips the main executable and any other necessary files for distribution.
       run: |
         Compress-Archive -Path release\* -DestinationPath TicTacToe-Windows-Release.zip
       shell: powershell # PowerShell's Compress-Archive is used here
