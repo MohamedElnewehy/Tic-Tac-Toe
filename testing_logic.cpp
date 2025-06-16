@@ -248,5 +248,6 @@ EXPECT_EQ(MakemoveTest.board[k][l],MakemoveTest.currentPlayer);
 
 int main(int argc, char** argv) {
  testing::InitGoogleTest(&argc,argv);
-sigreturn; RUN_ALL_TESTS();
+return RUN_ALL_TESTS();
+
 }
