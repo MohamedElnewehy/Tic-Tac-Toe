@@ -24,25 +24,17 @@ jobs:
         mkdir -p release
       shell: bash
 
-    # --- Install GoogleTest from source ---
-
-    - name: Install Google Test
+    - name: Clone Google Test
       run: |
         git clone https://github.com/google/googletest.git
-        cd googletest
-        mkdir build && cd build
-        cmake ..
-        cmake --build .
       shell: bash
-
-    # --- Compile test executables using g++ ---
 
     - name: Compile and Build Debug Test Executables
       run: |
-        g++ testing_logic.cpp -o debug/testing_logic.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
-        g++ testing_database.cpp -o debug/testing_database.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lsqlite3 -lpicosha2 -lgtest -lgtest_main -pthread -std=c++17
-        g++ testingAI.cpp -o debug/testingAI.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
-        g++ testingOverwrite.cpp -o debug/testingOverwrite.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
+        g++ testing_logic.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testing_logic.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
+        g++ testing_database.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testing_database.exe -Igoogletest/googletest/include -Igoogletest/googletest -lsqlite3 -lpicosha2 -pthread -std=c++17
+        g++ testingAI.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testingAI.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
+        g++ testingOverwrite.cpp googletest/googletest/src/gtest-all.cc googletest/googletest/src/gtest_main.cc -o debug/testingOverwrite.exe -Igoogletest/googletest/include -Igoogletest/googletest -pthread -std=c++17
       shell: bash
 
     - name: Run Tests (Google Test)
@@ -63,14 +55,10 @@ jobs:
         name: google-test-results
         path: "*.xml"
 
-    # --- Compile release build ---
-
     - name: Compile and Build Main Application (Release)
       run: |
         g++ main.cpp menu.cpp classic_game.cpp overwrite_game.cpp ai_engine.cpp game_core.cpp TicTacToeDB.cpp sqlite3.c -o release/TicTacToe.exe -O2 -I. -L. -lsqlite3 -lpicosha2 -pthread -std=c++17
       shell: bash
-
-    # --- Package and upload the release binary ---
 
     - name: Package application for release
       run: |
