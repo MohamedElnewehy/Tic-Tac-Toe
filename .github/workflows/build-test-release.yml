@@ -3,95 +3,86 @@ name: Console Tic Tac Toe CI/CD (No Qt)
 on:
   push:
     branches:
-      - main # Trigger on pushes to the main branch
+      - main
   pull_request:
     branches:
-      - main # Trigger on pull requests targeting the main branch
+      - main
   release:
-    types: [published] # Trigger the CD part when a new release is published
+    types: [published]
 
 jobs:
   build-test-release:
-    runs-on: windows-latest # Use the latest Windows environment, which includes g++
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Action to fetch your repository's code
+      uses: actions/checkout@v4
 
     - name: Create build directories
-      # Create 'debug' for test executables and 'release' for the main game executable
       run: |
         mkdir -p debug
         mkdir -p release
       shell: bash
 
-    # --- CI Part: Build Debug for Tests and Run Tests ---
+    # --- Install GoogleTest ---
+
+    - name: Install Google Test
+      run: |
+        git clone https://github.com/google/googletest.git
+        cd googletest
+        mkdir build && cd build
+        cmake ..
+        cmake --build .
+      shell: bash
+
+    # --- CI: Compile & Run Tests ---
 
     - name: Compile and Build Debug Test Executables
-      # Compiles each of your Google Test .cpp files into separate executables.
-      # Assumes 'g++' is available on the PATH (it is on Windows-latest runners with Git Bash).
-      # -g: includes debug information for testing
-      # -I.: includes current directory for headers
-      # -L.: links from current directory for libraries (like gtest)
-      # -lgtest -lgtest_main -pthread: standard linking for Google Test.
-      # -lsqlite3: links the SQLite library.
-      # -lpicosha2: links the PicoSHA2 library (assuming it's compiled or headers are available).
-      # -std=c++17: specifies C++17 standard.
-      # Adjust executable names if different from what your local build produces.
       run: |
-        g++ testing_logic.cpp -o debug/testing_logic.exe -g -I. -L. -lgtest -lgtest_main -pthread -std=c++17
-        g++ testing_database.cpp -o debug/testing_database.exe -g -I. -L. -lsqlite3 -lpicosha2 -lgtest -lgtest_main -pthread -std=c++17
-        g++ testingAI.cpp -o debug/testingAI.exe -g -I. -L. -lgtest -lgtest_main -pthread -std=c++17
-        g++ testingOverwrite.cpp -o debug/testingOverwrite.exe -g -I. -L. -lgtest -lgtest_main -pthread -std=c++17
-      shell: bash # Use bash for consistent path and command execution
-      working-directory: ${{ github.workspace }} # Run commands from the repository root
+        g++ testing_logic.cpp -o debug/testing_logic.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
+        g++ testing_database.cpp -o debug/testing_database.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lsqlite3 -lpicosha2 -lgtest -lgtest_main -pthread -std=c++17
+        g++ testingAI.cpp -o debug/testingAI.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
+        g++ testingOverwrite.cpp -o debug/testingOverwrite.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
+      shell: bash
+      working-directory: ${{ github.workspace }}
 
     - name: Run Tests (Google Test)
-      # Executes each of your compiled Google Test executables.
-      # Errors in tests will cause this step to fail the workflow.
       run: |
         echo "Listing contents of debug build directory:"
         ls -F debug/
-        echo "Attempting to run Google Tests..."
-        .\debug\testing_logic.exe --gtest_output="xml:test_results_logic.xml"
-        .\debug\testing_database.exe --gtest_output="xml:test_results_database.xml"
-        .\debug\testingAI.exe --gtest_output="xml:test_results_AI.xml"
-        .\debug\testingOverwrite.exe --gtest_output="xml:test_results_overwrite.xml"
+        echo "Running tests..."
+        ./debug/testing_logic.exe --gtest_output="xml:test_results_logic.xml"
+        ./debug/testing_database.exe --gtest_output="xml:test_results_database.xml"
+        ./debug/testingAI.exe --gtest_output="xml:test_results_AI.xml"
+        ./debug/testingOverwrite.exe --gtest_output="xml:test_results_overwrite.xml"
       shell: bash
       working-directory: ${{ github.workspace }}
 
     - name: Upload Test Results
-      uses: actions/upload-artifact@v4 # Uploads the generated XML test reports
-      if: always() # Uploads even if tests fail, so you can inspect failures
+      uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: google-test-results
-        path: "*.xml" # Path to your Google Test XML output files
+        path: "*.xml"
 
-    # --- CD Part: Build Release, Package, Upload ---
+    # --- CD: Build Release & Upload ---
 
     - name: Compile and Build Main Application (Release)
-      # Compiles your main game files into a single executable.
-      # Ensure ALL your C++ source files are listed here.
-      # '-O2' for optimization in release build.
-      # Includes 'sqlite3.c' directly in compilation as it's provided.
-      # Assumes 'picosha2.h' is a header-only library or linked implicitly.
       run: |
         g++ main.cpp menu.cpp classic_game.cpp overwrite_game.cpp ai_engine.cpp game_core.cpp TicTacToeDB.cpp sqlite3.c -o release/TicTacToe.exe -O2 -I. -L. -lsqlite3 -lpicosha2 -pthread -std=c++17
       shell: bash
       working-directory: ${{ github.workspace }}
 
     - name: Package application for release
-      # Zips the main executable and any other necessary files for distribution.
       run: |
         Compress-Archive -Path release\* -DestinationPath TicTacToe-Windows-Release.zip
-      shell: powershell # PowerShell's Compress-Archive is used here
+      shell: powershell
 
     - name: Upload release asset
-      # This step only runs when a GitHub Release is published, uploading the zip.
       uses: actions/upload-release-asset@v1
       if: github.event_name == 'release' && github.event.action == 'published'
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Built-in token for GitHub API access
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: TicTacToe-Windows-Release.zip
