@@ -24,7 +24,7 @@ jobs:
         mkdir -p release
       shell: bash
 
-    # --- Install GoogleTest ---
+    # --- Install GoogleTest from source ---
 
     - name: Install Google Test
       run: |
@@ -35,7 +35,7 @@ jobs:
         cmake --build .
       shell: bash
 
-    # --- CI: Compile & Run Tests ---
+    # --- Compile test executables using g++ ---
 
     - name: Compile and Build Debug Test Executables
       run: |
@@ -44,7 +44,6 @@ jobs:
         g++ testingAI.cpp -o debug/testingAI.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
         g++ testingOverwrite.cpp -o debug/testingOverwrite.exe -g -Igoogletest/googletest/include -Lgoogletest/build/lib -lgtest -lgtest_main -pthread -std=c++17
       shell: bash
-      working-directory: ${{ github.workspace }}
 
     - name: Run Tests (Google Test)
       run: |
@@ -56,7 +55,6 @@ jobs:
         ./debug/testingAI.exe --gtest_output="xml:test_results_AI.xml"
         ./debug/testingOverwrite.exe --gtest_output="xml:test_results_overwrite.xml"
       shell: bash
-      working-directory: ${{ github.workspace }}
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v4
@@ -65,13 +63,14 @@ jobs:
         name: google-test-results
         path: "*.xml"
 
-    # --- CD: Build Release & Upload ---
+    # --- Compile release build ---
 
     - name: Compile and Build Main Application (Release)
       run: |
         g++ main.cpp menu.cpp classic_game.cpp overwrite_game.cpp ai_engine.cpp game_core.cpp TicTacToeDB.cpp sqlite3.c -o release/TicTacToe.exe -O2 -I. -L. -lsqlite3 -lpicosha2 -pthread -std=c++17
       shell: bash
-      working-directory: ${{ github.workspace }}
+
+    # --- Package and upload the release binary ---
 
     - name: Package application for release
       run: |
