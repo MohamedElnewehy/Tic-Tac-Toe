@@ -98,11 +98,11 @@ run_tests() {
     
     # List of test executables
     local tests=(
-        "bin/core_game_tests"
-        "bin/overwrite_mode_tests"
-        "bin/ai_engine_tests"
-        "bin/database_tests"
-        "bin/all_tests"
+        "tests/core_game_tests"
+        "tests/overwrite_mode_tests"
+        "tests/ai_engine_tests"
+        "tests/database_tests"
+        "tests/all_tests"
     )
     
     local passed_tests=0
