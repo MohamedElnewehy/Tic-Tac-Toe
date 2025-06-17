@@ -1,0 +1,65 @@
+name: Build and Deploy Tic Tac Toe_console
+
+on:
+  push:
+    branches: [TicTacToe_console]
+  pull_request:
+    branches: [TicTacToe_console]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Tic Tac Toe
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ cmake ninja-build
+
+      - name: Compile Source Files
+        run: |
+          g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+            -o TictacToe \
+            ai_engine.cpp \
+            classic_game.cpp \
+            game_core.cpp \
+            menu.cpp \
+            overwrite_game.cpp \
+            main.cpp
+
+      - name: Upload Executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: TictacToe-executable
+          path: TictacToe
+
+  deploy:
+    name: Deploy Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Download Built Executable
+        uses: actions/download-artifact@v4
+        with:
+          name: TictacToe-executable
+          path: dist/
+
+      - name: Create Release Tarball
+        run: |
+          tar -czf tic-tac-toe-release.tar.gz -C dist TictacToe
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tic-tac-toe-release
+          path: tic-tac-toe-release.tar.gz
