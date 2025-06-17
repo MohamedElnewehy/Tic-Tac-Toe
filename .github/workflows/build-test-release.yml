@@ -1,4 +1,4 @@
-name: Tic Tac Toe CI/CD
+name: Tic Tac Toe CI/CD with GUI
 
 on:
   push:
