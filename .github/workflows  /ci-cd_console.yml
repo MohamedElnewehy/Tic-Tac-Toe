@@ -2,9 +2,9 @@ name: Build and Deploy Tic Tac Toe
 
 on:
   push:
-    branches: [main]
+    branches: [TicTacToe_console]
   pull_request:
-    branches: [main]
+    branches: [TicTacToe_console]
   workflow_dispatch:
 
 jobs:
