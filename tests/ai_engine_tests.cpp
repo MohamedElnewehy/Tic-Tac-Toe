@@ -225,7 +225,4 @@ TEST(AIEngineTests, HardVsHardPerfectPlay){
     EXPECT_EQ(hard_wins_counter,0);
 }
 
-int main(int argc, char** argv){
-    testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
+
