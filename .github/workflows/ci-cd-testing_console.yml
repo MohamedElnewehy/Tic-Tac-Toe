@@ -38,6 +38,30 @@ jobs:
           name: TictacToe-executable
           path: TictacToe
 
+  test:
+    name: Run Tests
+    runs-on: ubuntu-24.04
+    needs: build
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Build Environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ cmake make
+
+      - name: List Files for Debugging
+        run: |
+          echo "Listing all files in workspace..."
+          find .
+
+      - name: Run Tests
+        run: |
+          chmod +x build_and_test.sh
+          ./build_and_test.sh
+
   deploy:
     name: Deploy Release
     runs-on: ubuntu-latest
@@ -63,27 +87,3 @@ jobs:
         with:
           name: tic-tac-toe-release
           path: tic-tac-toe-release.tar.gz
-
-  test:
-    name: Run Tests
-    runs-on: ubuntu-24.04
-    needs: build
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Build Environment
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y g++ cmake make
-
-      - name: Move Test Files
-        run: |
-          mkdir -p tests
-          mv ai_engine_tests.cpp core_game_tests.cpp database_tests.cpp overwrite_mode_tests.cpp test_runner.cpp tests/
-
-      - name: Run Tests
-        run: |
-          chmod +x build_and_test.sh
-          ./build_and_test.sh
