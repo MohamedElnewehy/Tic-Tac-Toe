@@ -1,0 +1,98 @@
+name: CI-CD-advaced_console Test Tic Tac Toe
+
+on:
+  push:
+    branches: [TicTacToe_console] # Trigger on pushes to this specific branch
+  pull_request:
+    branches: [TicTacToe_console] # Trigger on pull requests targeting this branch
+  workflow_dispatch: # Allow manual triggering from GitHub Actions UI
+
+jobs:
+  # Build Phase - Compiles the main Tic Tac Toe game executable
+  build:
+    name: Build Tic Tac Toe
+    runs-on: ubuntu-24.04 # Use a specific Ubuntu version for consistent environment
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4 # Get the latest code from your repository
+
+    - name: Set up Build Environment
+      run: |
+        sudo apt-get update # Update package lists
+        # Install g++, cmake, and ninja-build for the main game compilation
+        # (ninja-build is often used with CMake for faster builds)
+        sudo apt-get install -y g++ cmake ninja-build
+
+    - name: Compile Source Files
+      run: |
+        # Compile all main game source files into a single executable named TictacToe
+        g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic \
+          -o TictacToe \
+          ai_engine.cpp \
+          classic_game.cpp \
+          game_core.cpp \
+          menu.cpp \
+          overwrite_game.cpp \
+          main.cpp
+
+    - name: Upload Executable
+      uses: actions/upload-artifact@v4 # Upload the compiled game executable as an artifact
+      with:
+        name: TictacToe-executable
+        path: TictacToe # Path to the generated executable
+
+  # Deployment Phase (Staging/Release)
+  deploy:
+    name: Deploy Release
+    runs-on: ubuntu-latest # Use a generic Ubuntu runner for deployment tasks
+    needs: build # This job depends on the 'build' job completing successfully
+    if: github.ref == 'refs/heads/TicTacToe_console' # Only deploy if on the specified branch
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4 # Checkout the code again for deployment context
+
+    - name: Download Built Executable
+      uses: actions/download-artifact@v4 # Download the executable artifact from the 'build' job
+      with:
+        name: TictacToe-executable
+        path: dist/ # Download it into a 'dist' directory
+
+    - name: Create Release Tarball
+      run: |
+        # Create a compressed tarball containing the executable
+        tar -czf tic-tac-toe-release.tar.gz -C dist TictacToe
+
+    - name: Upload Release Artifact
+      uses: actions/upload-artifact@v4 # Upload the tarball as a release artifact
+      with:
+        name: tic-tac-toe-release
+        path: tic-tac-toe-release.tar.gz
+
+  # Test Phase - Runs the comprehensive test suite
+  test:
+    name: Run Tests
+    runs-on: ubuntu-24.04 # Use a specific Ubuntu version for the test environment
+    needs: build # This job depends on the 'build' job completing successfully
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4 # Get the latest code from your repository
+
+    - name: Set up Test Environment
+      run: |
+        sudo apt-get update # Update package lists
+        # Install g++, cmake, and make (often used by cmake --build)
+        sudo apt-get install -y g++ cmake make
+        # Install Google Test source (libgtest-dev)
+        sudo apt-get install -y libgtest-dev
+        # Install SQLite3 development files, crucial for your database tests
+        sudo apt-get install -y libsqlite3-dev
+
+    - name: Run Tests via Script
+      run: |
+        # Make your build_and_test.sh script executable
+        chmod +x build_and_test.sh
+        # Execute the script, which handles CMake configuration, building tests, and running them
+        ./build_and_test.sh
