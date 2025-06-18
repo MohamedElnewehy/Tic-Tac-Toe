@@ -12,6 +12,8 @@ private:
 FRIEND_TEST(func_logic,checkwin);
 FRIEND_TEST(func_logic,checkdraw);
 FRIEND_TEST(func_logic,checkswap);
+FRIEND_TEST(func_logic,makemove);
+FRIEND_TEST(integrated_logic,fullgame);
 public:
     TicTacToe() {
         board = vector< vector<char> >(3, vector<char>(3, ' '));
@@ -76,6 +78,7 @@ public:
             for (int j = 0; j < 3; ++j)
                 if (board[i][j] == ' ')
                     return false;
+	if(!checkWin());
         return true;
     }//same test case as the function above
 
@@ -110,9 +113,10 @@ public:
         }
     }
 };
+
 TEST(func_logic,checkswap){
 TicTacToe checkswaptest;
-//testing the change from X to O since the default value is O
+//testing the change from X to O since the default value is X
 EXPECT_EQ(checkswaptest.currentPlayer,'X');//default value must be X
 checkswaptest.switchPlayer();
 EXPECT_EQ(checkswaptest.currentPlayer,'O');//must be switched to O
@@ -175,7 +179,11 @@ for(int k=0;k<3;k++)
 checkwinTest.board[2-k][k] = ' ';//resetting the board
 //all win conditions have been tested now to check if it doesnt detect a win
 EXPECT_EQ(checkwinTest.checkWin(),false);
-
+//the previous line passing means the board was completely emptied
+//now we test if it doesn't register a win on 2 consecutive symbols
+checkwinTest.board[0][0] = 'X';
+checkwinTest.board[0][1] = 'X';
+EXPECT_FALSE(checkwinTest.checkWin());
 }
 //testing the checkdraw function
 TEST(func_logic,checkdraw){
@@ -214,6 +222,7 @@ checkdrawtest.board[0][0]='X';
 checkdrawtest.board[2][2]='O';
 checkdrawtest.board[2][0]='X';
 EXPECT_EQ(checkdrawtest.checkDraw(),true);
+EXPECT_FALSE(checkdrawtest.checkWin());
 }
 
 //testing the makemove function
@@ -227,11 +236,58 @@ EXPECT_EQ(MakemoveTest.makeMove(3,0),false);
 EXPECT_EQ(MakemoveTest.makeMove(0,3),false);
 //inputting a wrong column below the valid values
 EXPECT_EQ(MakemoveTest.makeMove(0,-1),false);
-//inputting correct rows and columns:
+//inputting correct rows and columns and checking that it puts moves 
+//in the correct place
 for(int k=0;k<3;k++){
 for(int l=0;l<3;l++){
-EXPECT_EQ(MakemoveTest.makeMove(k,l),true);}}
+EXPECT_EQ(MakemoveTest.makeMove(k,l),true);
+//testing for making moves on an already occupied position
+EXPECT_FALSE(MakemoveTest.makeMove(k,l));
+EXPECT_EQ(MakemoveTest.board[k][l],MakemoveTest.currentPlayer);
+}}
 }
+/*Integration testing part*/
+/*here a couple of full games are tested to check if everything will run as expected*/
+TEST(integrated_logic,fullgame)//here I am running dummy code to simulate a full game
+			       //its sequence is as follows
+			       //1-make move
+			       //2-check win
+			       //3-check draw
+			       //4-switch player
+{
+int games[5][18]={1,1,0,2,2,2,0,0,0,1,1,2,2,1,0,0,0,0,//first game X wins
+		  1,1,2,2,1,2,2,1,2,0,0,2,0,1,0,0,1,0,//second game X wins
+		  1,1,2,2,2,1,1,2,0,2,2,0,1,0,0,1,0,0,//third game draw
+		  1,1,2,0,1,0,2,1,0,0,2,2,0,0,0,0,0,0,//fourth game O wins
+		  1,1,2,2,1,0,1,2,0,0,2,1,0,1,2,0,0,0//fifth game O wins		  		  
+};
+char games_winners[5] = {0};
+TicTacToe tested_games[5];
+for(int i =0;i<5;i++)//selecting game in the multidimensional array
+{
+for(int j = 0;j<18;j += 2)//making moves
+{
+tested_games[i].makeMove(games[i][j],games[i][j+1]);
+if(tested_games[i].checkWin()){
+games_winners[i] = tested_games[i].currentPlayer;
+break;
+}
+
+if(tested_games[i].checkDraw()){
+break;
+}
+tested_games[i].switchPlayer();
+}
+}
+EXPECT_EQ(games_winners[0],'X');
+EXPECT_EQ(games_winners[1],'X');
+EXPECT_EQ(games_winners[2],0);
+EXPECT_EQ(games_winners[3],'O');
+EXPECT_EQ(games_winners[4],'O');
+
+}
+
+
 
 int main(int argc, char** argv) {
  testing::InitGoogleTest(&argc,argv);
