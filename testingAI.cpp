@@ -7,7 +7,7 @@
 
 using namespace std;
 const int SIZE = 3;
-/*this is a helper function not in need of testing*/
+
 bool isMovesLeft(char board[3][3])
 {
     for (int i = 0; i < SIZE; ++i)
@@ -15,7 +15,7 @@ bool isMovesLeft(char board[3][3])
             if (board[i][j] == ' ') return true;
     return false;
 }
-/*this is also a helper function, not in need of testing*/
+
 int evaluate(char board[3][3], char aiSymbol, char humanSymbol) {
     for (int i = 0; i < SIZE; i++) {
         if (board[i][0] == board[i][1] && board[i][1] == board[i][2]) {
@@ -112,6 +112,26 @@ for(int i=0;i<SIZE;i++)
 	board[i][j] = ' ';
 }
 /*end of the test helper functions*/
+TEST(AI,isMovesLeft){
+char board[SIZE][SIZE] = {' ',' ',' ',
+			  ' ',' ',' ',
+			  ' ',' ',' '};
+EXPECT_TRUE(isMovesLeft(board));
+//a couple of random moves
+board[0][2] = 'X';
+board[0][1] = 'O';
+board[1][1] = 'X';
+EXPECT_TRUE(isMovesLeft(board));
+//fill up the board
+board[0][0] = 'O';
+board[1][0] = 'X';
+board[1][2] = 'O';
+board[2][0] = 'X';
+board[2][1] = 'O';
+board[2][2] = 'X';
+EXPECT_FALSE(isMovesLeft(board));
+
+}
 TEST(AI,EASY_MEDIUM)//here it tests the fact that medium is harder than easy
 {
 char board[SIZE][SIZE] = {' ',' ',' ',
@@ -142,7 +162,7 @@ clearboard(board);
 EXPECT_GT(medium_wins_counter,50);
 EXPECT_LT(50,medium_wins_counter);
 }
-TEST(AI,MEDIUM_HARD)//here it tests the fact that hard is harder than medium
+TEST(AI,MEDIUM_HARD)//here it tests the fact that medium is harder than easy
 {
 char board[SIZE][SIZE] = {' ',' ',' ',
                           ' ',' ',' ',
