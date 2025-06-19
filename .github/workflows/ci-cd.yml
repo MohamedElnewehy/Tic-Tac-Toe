@@ -1,15 +1,9 @@
 name: TicTacToe CI/CD Pipeline
 
-on:
-  push:
-    branches: [ main, develop, TicTacToe_V2 ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 env:
   QT_VERSION: 6.5.0
-  CMAKE_VERSION: 3.16
 
 jobs:
   build-and-test:
@@ -19,12 +13,13 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         build-type: [Release, Debug]
     runs-on: ${{ matrix.os }}
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4                       # updated to v4 [1]
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Install Qt
-        uses: jurplel/install-qt-action@v4               # updated to v4 [1]
+        uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
           host: ${{ runner.os == 'Linux' && 'linux' || runner.os == 'Windows' && 'windows' || 'mac' }}
@@ -33,31 +28,27 @@ jobs:
           install-deps: true
           cache: true
 
-      - name: Expose Qt6 CMake Path                  # **new step**
-        run: echo "Qt6_DIR=${{ env.QT_INSTALL_DIR }}/lib/cmake/Qt6" >> $GITHUB_ENV  # ensures CMake finds Qt6 [2]
+      - name: Expose Qt6 CMake Path
+        run: echo "Qt6_DIR=${{ env.QT_INSTALL_DIR }}/lib/cmake/Qt6" >> $GITHUB_ENV
 
-      - name: Install MSVC Dev Command (Windows)
+      - name: Install MSVC Dev Cmd (Windows)
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1.13.0             # pinned to Node.js 20 compatible version [1]
+        uses: ilammy/msvc-dev-cmd@v1.13.0
 
-      - name: Install System Dependencies (Linux)
+      - name: Install Dependencies (Linux)
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build libgl1-mesa-dev
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libgl1-mesa-dev
 
-      - name: Install System Dependencies (macOS)
+      - name: Install Dependencies (macOS)
         if: runner.os == 'macOS'
-        run: |
-          brew install cmake ninja
+        run: brew install cmake ninja
 
-      - name: Configure with CMake
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-            -DQt6_DIR=${{ env.Qt6_DIR }}               # added Qt6_DIR to CMake command [2]
+      - name: Configure CMake
+        run: cmake -B build -G Ninja \
+               -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+               -DQt6_DIR=${{ env.Qt6_DIR }}
 
-      - name: Build Project
+      - name: Build
         run: cmake --build build --config ${{ matrix.build-type }} --parallel
 
       - name: Run Tests
@@ -67,16 +58,14 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4               # upgraded to v4 to avoid deprecation failure [1]
+        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.build-type }}
-          path: |
-            build/Testing/
-            build/test_detail.xml
+          path: build/Testing/
 
-      - name: Upload Build Artifacts (Release only)
+      - name: Upload Build Artifacts
         if: matrix.build-type == 'Release'
-        uses: actions/upload-artifact@v4               # upgraded to v4 [1]
+        uses: actions/upload-artifact@v4
         with:
-          name: tictactoe-${{ runner.os }}-${{ matrix.build-type }}
+          name: TicTacToe-${{ matrix.os }}-Release
           path: build/TicTacToe_V2*
