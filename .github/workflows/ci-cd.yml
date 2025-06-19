@@ -1,21 +1,82 @@
-name: CI
+name: TicTacToe CI/CD Pipeline
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, develop, TicTacToe_V2 ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  QT_VERSION: 6.5.0
+  CMAKE_VERSION: 3.16
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        build-type: [Release, Debug]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4                       # updated to v4 [1]
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4               # updated to v4 [1]
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: ${{ runner.os == 'Linux' && 'linux' || runner.os == 'Windows' && 'windows' || 'mac' }}
+          target: desktop
+          arch: ${{ runner.os == 'Windows' && 'win64_msvc2019_64' || runner.os == 'Linux' && 'gcc_64' || 'clang_64' }}
+          install-deps: true
+          cache: true
+
+      - name: Expose Qt6 CMake Path                  # **new step**
+        run: echo "Qt6_DIR=${{ env.QT_INSTALL_DIR }}/lib/cmake/Qt6" >> $GITHUB_ENV  # ensures CMake finds Qt6 [2]
+
+      - name: Install MSVC Dev Command (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1.13.0             # pinned to Node.js 20 compatible version [1]
+
+      - name: Install System Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build libgl1-mesa-dev
+
+      - name: Install System Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja
 
       - name: Configure with CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+            -DQt6_DIR=${{ env.Qt6_DIR }}               # added Qt6_DIR to CMake command [2]
 
-      - name: Build
-        run: cmake --build build --parallel
+      - name: Build Project
+        run: cmake --build build --config ${{ matrix.build-type }} --parallel
 
-      - name: Run tests
-        run: ctest --test-dir build --output-on-failure
+      - name: Run Tests
+        run: |
+          cd build
+          ctest -C ${{ matrix.build-type }} --output-on-failure --verbose --parallel --timeout 300
 
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4               # upgraded to v4 to avoid deprecation failure [1]
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.build-type }}
+          path: |
+            build/Testing/
+            build/test_detail.xml
+
+      - name: Upload Build Artifacts (Release only)
+        if: matrix.build-type == 'Release'
+        uses: actions/upload-artifact@v4               # upgraded to v4 [1]
+        with:
+          name: tictactoe-${{ runner.os }}-${{ matrix.build-type }}
+          path: build/TicTacToe_V2*
