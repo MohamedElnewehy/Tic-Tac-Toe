@@ -1,10 +1,10 @@
-name: TicTacToe_V2 CI/CD Pipeline
+name: Build & Deploy TicTacToe_V2
 
 on:
   push:
-    branches: [ TicTacToe_V2 ]    # Only run on TicTacToe_V2 branch [1]
+    branches: [TicTacToe_V2]
   pull_request:
-    branches: [ TicTacToe_V2 ]    # Tests PRs targeting TicTacToe_V2 [1]
+    branches: [TicTacToe_V2]
   workflow_dispatch:
 
 jobs:
@@ -12,27 +12,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout source code
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4 [1]
 
-      - name: Install Qt & Dependencies
+      # 2. Install Qt 6.9.0 and build tools
+      - name: Install Qt 6.9.0 & dependencies
+        uses: jurplel/install-qt-action@v4 [2]
+        with:
+          version: '6.9.0'
+          host: ${{ runner.os == 'Linux' && 'linux' || runner.os == 'Windows' && 'windows' || 'mac' }}
+          target: desktop
+          arch: ${{ runner.os == 'Windows' && 'win64_msvc2022_64' || runner.os == 'Linux' && 'gcc_64' || 'clang_64' }}
+          modules: qtbase
+          install-deps: true
+          use-official: true
+
+      # 3. Linux system packages (Ubuntu 24.04)
+      - name: Install system packages (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-base-dev qt6-qmake build-essential cmake ninja-build libgl1-mesa-dev [2]
+          sudo apt-get install -y qt6-base-dev qt6-qmake build-essential [3]
 
-      - name: Build with qmake
+      # 4. Configure project with qmake
+      - name: Configure via qmake
         run: |
-          qmake Advanced_TicTacToe.pro CONFIG+=release
-          make -j$(nproc) [2]
+          qmake Advanced_TicTacToe.pro CONFIG+=release [3]
 
-      - name: Package Artifacts
+      # 5. Build executable
+      - name: Build with make
+        run: |
+          make -j$(nproc) [3]
+
+      # 6. Package build for deployment
+      - name: Archive build output
         run: |
           mkdir -p artifact
-          cp TicTacToe_V2 artifact/
-          tar -czf TicTacToe_V2_${{ github.sha }}.tar.gz -C artifact . [3]
+          cp TicTacToe_V2 artifact/    # adjust name if your executable differs [4]
+          tar -czf TicTacToe_V2_${{ github.sha }}.tar.gz -C artifact . [4]
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      # 7. Upload deployment artifact
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4 [1]
         with:
-          name: TicTacToe_V2-release
-          path: TicTacToe_V2_${{ github.sha }}.tar.gz [3]
+          name: TicTacToe_V2_${{ github.sha }}
+          path: TicTacToe_V2_${{ github.sha }}.tar.gz [1]
