@@ -24,26 +24,6 @@ public:
     explicit GameWindow(const QString& gameMode, QWidget *parent = nullptr);
     ~GameWindow();
     void setCurrentUser(const QString& username, int userId);
-
-    // === ✅ Public Test Accessors ===
-    bool isGameEnded() const { return gameEnded; }
-    char getCurrentPlayer() const { return currentPlayer; }
-    char getCellValue(int index) const { return board[index]; }
-    bool isAIGameMode() const { return isAIGame; }
-    int getAIDifficulty() const { return aiDifficulty; }
-    bool makeTestMove(int pos, char player) { return makeMove(pos, player); }
-    bool checkTestWin(char player) { return checkWin(player); }
-
-signals:
-    void backToMenuRequested();
-
-private slots:
-    void onCellClicked();
-    void resetGame();
-    void backToMenu();
-    void onAIMove();
-
-private:
     void setupUI();
     void initializeGame();
     bool makeMove(int position, char player);
@@ -97,6 +77,26 @@ private:
 
     // Overwrite game logic
     OverwriteGame *overwriteGame;
+    // === ✅ Public Test Accessors ===
+    bool isGameEnded() const { return gameEnded; }
+    char getCurrentPlayer() const { return currentPlayer; }
+    char getCellValue(int index) const { return board[index]; }
+    bool isAIGameMode() const { return isAIGame; }
+    int getAIDifficulty() const { return aiDifficulty; }
+    bool makeTestMove(int pos, char player) { return makeMove(pos, player); }
+    bool checkTestWin(char player) { return checkWin(player); }
+
+signals:
+    void backToMenuRequested();
+
+private slots:
+    void onCellClicked();
+    void resetGame();
+    void backToMenu();
+    void onAIMove();
+
+private:
+
 };
 
 #endif // GAMEWINDOW_H
