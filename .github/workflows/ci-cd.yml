@@ -1,4 +1,4 @@
-name: Build & Deploy TicTacToe_V2
+name: Qt CI/CD Pipeline
 
 on:
   push:
@@ -7,54 +7,42 @@ on:
     branches: [TicTacToe_V2]
   workflow_dispatch:
 
+env:
+  BUILD_TYPE: Release
+
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source code
-      - name: Checkout code
-        uses: actions/checkout@v4 [1]
+    - name: 🧾 Checkout repository
+      uses: actions/checkout@v3
 
-      # 2. Install Qt 6.9.0 and build tools
-      - name: Install Qt 6.9.0 & dependencies
-        uses: jurplel/install-qt-action@v4 [2]
-        with:
-          version: '6.9.0'
-          host: ${{ runner.os == 'Linux' && 'linux' || runner.os == 'Windows' && 'windows' || 'mac' }}
-          target: desktop
-          arch: ${{ runner.os == 'Windows' && 'win64_msvc2022_64' || runner.os == 'Linux' && 'gcc_64' || 'clang_64' }}
-          modules: qtbase
-          install-deps: true
-          use-official: true
+    - name: 🧰 Install Qt 6.9.0
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: 6.9.0
+        host: linux
+        target: desktop
+        arch: gcc_64
 
-      # 3. Linux system packages (Ubuntu 24.04)
-      - name: Install system packages (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y qt6-base-dev qt6-qmake build-essential [3]
+    - name: 🛠️ Build project using qmake
+      run: |
+        qmake Advanced_TicTacToe.pro CONFIG+=release
+        make
 
-      # 4. Configure project with qmake
-      - name: Configure via qmake
-        run: |
-          qmake Advanced_TicTacToe.pro CONFIG+=release [3]
+    - name: 📦 Archive build output
+      run: |
+        mkdir -p dist
+        cp -r *.pro dist/
+        cp -r *.cpp dist/
+        cp -r *.h dist/
+        cp -r *.ui dist/
+        cp -r *.o dist/ || true
+        cp -r Advanced_TicTacToe dist/ || true
 
-      # 5. Build executable
-      - name: Build with make
-        run: |
-          make -j$(nproc) [3]
-
-      # 6. Package build for deployment
-      - name: Archive build output
-        run: |
-          mkdir -p artifact
-          cp TicTacToe_V2 artifact/    # adjust name if your executable differs [4]
-          tar -czf TicTacToe_V2_${{ github.sha }}.tar.gz -C artifact . [4]
-
-      # 7. Upload deployment artifact
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v4 [1]
-        with:
-          name: TicTacToe_V2_${{ github.sha }}
-          path: TicTacToe_V2_${{ github.sha }}.tar.gz [1]
+    - name: 📤 Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: built-qt-app
+        path: dist
