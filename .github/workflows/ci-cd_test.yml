@@ -1,4 +1,4 @@
-name: GoogleTest CI for Qt Tic Tac Toe
+name: Tic Tac Toe Windows Tests Only
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     - name: 📦 Checkout source
       uses: actions/checkout@v4
 
-    - name: 🛠️ Set up MSVC environment
+    - name: 🛠️ Set up MSVC developer command prompt
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: 🧰 Install Qt 6.8.3 (MSVC 2022 64-bit)
@@ -25,11 +25,11 @@ jobs:
         target: desktop
         arch: win64_msvc2022_64
 
-    - name: 🔧 Configure tests with CMake
-      run: cmake -S tests -B build-tests -DCMAKE_PREFIX_PATH="%Qt6_DIR%" -DCMAKE_BUILD_TYPE=Release
+    - name: 🧪 Configure tests via CMake
+      run: cmake -S . -B build-tests -DCMAKE_PREFIX_PATH="%Qt6_DIR%" -DCMAKE_BUILD_TYPE=Release
 
-    - name: 🧪 Build tests
+    - name: 🧱 Build tests via CMake
       run: cmake --build build-tests --config Release
 
-    - name: ▶️ Run tests
+    - name: ✅ Run tests
       run: ctest --test-dir build-tests --output-on-failure
