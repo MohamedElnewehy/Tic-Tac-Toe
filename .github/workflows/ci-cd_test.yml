@@ -1,0 +1,68 @@
+name: Tic Tac Toe Windows CI/CD
+
+on:
+  push:
+    branches: [TicTacToe_V2]
+  pull_request:
+    branches: [TicTacToe_V2]
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: 📦 Checkout source
+      uses: actions/checkout@v4
+
+    - name: 🛠️ Set up MSVC developer command prompt
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: 🧰 Install Qt 6.8.3 (MSVC 2022 64-bit)
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '6.8.3'
+        target: desktop
+        arch: win64_msvc2022_64
+
+    # ✅ Build application using qmake + nmake
+    - name: ⚙️ Run qmake to generate Makefile
+      run: qmake Advanced_TicTacToe.pro -spec win32-msvc "CONFIG+=release"
+      shell: cmd
+
+    - name: 🧱 Build project with nmake
+      run: nmake release
+      shell: cmd
+
+    - name: 🚚 Deploy Qt DLLs with windeployqt
+      run: windeployqt Advanced_TicTacToe.exe
+      working-directory: ${{ github.workspace }}\release
+      shell: cmd
+
+    - name: 📦 Package release as zip
+      run: |
+        Compress-Archive -Path release\* -DestinationPath TicTacToe-Windows-Release.zip
+      shell: powershell
+
+    - name: 📤 Upload release asset to GitHub (if release)
+      uses: actions/upload-release-asset@v1
+      if: github.event_name == 'release' && github.event.action == 'published'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: TicTacToe-Windows-Release.zip
+        asset_name: TicTacToe-Windows-Release.zip
+        asset_content_type: application/zip
+
+    # ✅ NEW: Build and run tests using CMake
+    - name: 🔧 Configure tests via CMake
+      run: cmake -S tests -B build-tests -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="%Qt6_DIR%"
+
+    - name: 🧪 Build tests
+      run: cmake --build build-tests --config Release
+
+    - name: 🧪 Run tests
+      run: ctest --test-dir build-tests --output-on-failure
