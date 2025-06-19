@@ -1,4 +1,4 @@
-name: Qt CI/CD Pipeline
+name: Tic Tac Toe Windows CI/CD
 
 on:
   push:
@@ -6,43 +6,52 @@ on:
   pull_request:
     branches: [TicTacToe_V2]
   workflow_dispatch:
-
-env:
-  BUILD_TYPE: Release
+  release:
+    types: [published]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
-    - name: 🧾 Checkout repository
-      uses: actions/checkout@v3
+    - name: 📦 Checkout source
+      uses: actions/checkout@v4
 
-    - name: 🧰 Install Qt 6.8.3
+    - name: 🛠️ Set up MSVC developer command prompt
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: 🧰 Install Qt 6.8.3 (MSVC 2022 64-bit)
       uses: jurplel/install-qt-action@v3
       with:
-        version: 6.8.3
-        host: linux
+        version: '6.8.3'
         target: desktop
-        arch: gcc_64
+        arch: win64_msvc2022_64
 
-    - name: 🛠️ Build project using qmake
+    - name: ⚙️ Run qmake to generate Makefile
+      run: qmake Advanced_TicTacToe.pro -spec win32-msvc "CONFIG+=release"
+      shell: cmd
+
+    - name: 🧱 Build project with nmake
+      run: nmake release
+      shell: cmd
+
+    - name: 🚚 Deploy Qt DLLs with windeployqt
+      run: windeployqt Advanced_TicTacToe.exe
+      working-directory: ${{ github.workspace }}\release
+      shell: cmd
+
+    - name: 📦 Package release as zip
       run: |
-        qmake Advanced_TicTacToe.pro CONFIG+=release
-        make
+        Compress-Archive -Path release\* -DestinationPath TicTacToe-Windows-Release.zip
+      shell: powershell
 
-    - name: 📦 Archive build output
-      run: |
-        mkdir -p dist
-        cp -r *.pro dist/ || true
-        cp -r *.cpp dist/ || true
-        cp -r *.h dist/ || true
-        cp -r *.ui dist/ || true
-        cp -r *.o dist/ || true
-        cp -r Advanced_TicTacToe dist/ || true
-
-    - name: 📤 Upload build artifacts
-      uses: actions/upload-artifact@v4
+    - name: 📤 Upload release asset to GitHub (if release)
+      uses: actions/upload-release-asset@v1
+      if: github.event_name == 'release' && github.event.action == 'published'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: built-qt-app
-        path: dist
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: TicTacToe-Windows-Release.zip
+        asset_name: TicTacToe-Windows-Release.zip
+        asset_content_type: application/zip
