@@ -45,29 +45,29 @@ TEST_F(GameWindowTest, WindowInitializesCorrectly) {
 
 TEST_F(GameWindowTest, ClassicModeValidMoves) {
     // Valid move on empty cell
-    EXPECT_TRUE(classicWindow->makeMove(0, 'X'));
+    EXPECT_TRUE(classicWindow->makeTestMove(0, 'X'));
     EXPECT_EQ(classicWindow->getCellValue(0), 'X');
     EXPECT_EQ(classicWindow->getCurrentPlayer(), 'O');
     
     // Invalid move on occupied cell
-    EXPECT_FALSE(classicWindow->makeMove(0, 'O'));
+    EXPECT_FALSE(classicWindow->makeTestMove(0, 'O'));
     EXPECT_EQ(classicWindow->getCellValue(0), 'X'); // Should remain X
 }
 
 TEST_F(GameWindowTest, WinDetectionWorks) {
     // Create winning condition
-    classicWindow->makeMove(0, 'X'); // X _ _
-    classicWindow->makeMove(3, 'O'); // _ O _
-    classicWindow->makeMove(1, 'X'); // _ _ _
-    classicWindow->makeMove(4, 'O');
-    classicWindow->makeMove(2, 'X'); // Should win
+    classicWindow->makeTestMove(0, 'X');
+    classicWindow->makeTestMove(3, 'O');
+    classicWindow->makeTestMove(1, 'X');
+    classicWindow->makeTestMove(4, 'O');
+    classicWindow->makeTestMove(2, 'X'); // Should win
     
     EXPECT_TRUE(classicWindow->isGameEnded());
-    EXPECT_TRUE(classicWindow->checkWin('X'));
+    EXPECT_TRUE(classicWindow->checkTestWin('X'));
 }
 
 TEST_F(GameWindowTest, AIGameInitializesCorrectly) {
     EXPECT_FALSE(aiWindow->isGameEnded());
-    EXPECT_TRUE(aiWindow->isAIGame());
+    EXPECT_TRUE(aiWindow->isAIGameMode());
     EXPECT_EQ(aiWindow->getAIDifficulty(), 1); // Easy
 }
