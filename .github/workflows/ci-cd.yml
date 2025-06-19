@@ -1,71 +1,37 @@
-name: TicTacToe CI/CD Pipeline
+name: CI/CD via qmake
 
-on: [push, pull_request, workflow_dispatch]
-
-env:
-  QT_VERSION: 6.5.0
+on:
+  push:
+    branches: [ main, develop, TicTacToe_V2 ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        build-type: [Release, Debug]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4  [1]
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ env.QT_VERSION }}
-          host: ${{ runner.os == 'Linux' && 'linux' || runner.os == 'Windows' && 'windows' || 'mac' }}
-          target: desktop
-          arch: ${{ runner.os == 'Windows' && 'win64_msvc2019_64' || runner.os == 'Linux' && 'gcc_64' || 'clang_64' }}
-          install-deps: true
-          cache: true
+    - name: Install Qt (qmake)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qt6-base-dev qt6-qmake build-essential  [2]
 
-      - name: Expose Qt6 CMake Path
-        run: echo "Qt6_DIR=${{ env.QT_INSTALL_DIR }}/lib/cmake/Qt6" >> $GITHUB_ENV
+    - name: Build with qmake
+      run: |
+        qmake TicTacToe_V2.pro -spec linux-g++ CONFIG+=release
+        make -j$(nproc)  [2]
 
-      - name: Install MSVC Dev Cmd (Windows)
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1.13.0
+    - name: Run Tests
+      run: |
+        ./build/tests/TicTacToe_Tests --gtest_output=xml:results.xml  [3]
 
-      - name: Install Dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libgl1-mesa-dev
-
-      - name: Install Dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: brew install cmake ninja
-
-      - name: Configure CMake
-        run: cmake -B build -G Ninja \
-               -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-               -DQt6_DIR=${{ env.Qt6_DIR }}
-
-      - name: Build
-        run: cmake --build build --config ${{ matrix.build-type }} --parallel
-
-      - name: Run Tests
-        run: |
-          cd build
-          ctest -C ${{ matrix.build-type }} --output-on-failure --verbose --parallel --timeout 300
-
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results-${{ matrix.os }}-${{ matrix.build-type }}
-          path: build/Testing/
-
-      - name: Upload Build Artifacts
-        if: matrix.build-type == 'Release'
-        uses: actions/upload-artifact@v4
-        with:
-          name: TicTacToe-${{ matrix.os }}-Release
-          path: build/TicTacToe_V2*
+    - name: Archive Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: results.xml  [1]
