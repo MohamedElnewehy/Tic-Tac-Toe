@@ -1,4 +1,4 @@
-name: Tic Tac Toe Windows Tests Only
+name: Tic Tac Toe Windows Tests Only TicTacToe_V2
 
 on:
   push:
