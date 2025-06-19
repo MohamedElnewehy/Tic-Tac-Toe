@@ -1,0 +1,37 @@
+name: CI/CD via qmake
+
+on:
+  push:
+    branches: [ main, develop, TicTacToe_V2 ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4  [1]
+
+    - name: Install Qt (qmake)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y qt6-base-dev qt6-qmake build-essential  [2]
+
+    - name: Build with qmake
+      run: |
+        qmake TicTacToe_V2.pro -spec linux-g++ CONFIG+=release
+        make -j$(nproc)  [2]
+
+    - name: Run Tests
+      run: |
+        ./build/tests/TicTacToe_Tests --gtest_output=xml:results.xml  [3]
+
+    - name: Archive Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: results.xml  [1]
