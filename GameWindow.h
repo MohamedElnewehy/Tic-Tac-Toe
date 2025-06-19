@@ -29,6 +29,7 @@ public:
 
 signals:
     void backToMenuRequested();
+    friend class GameWindowTest;
 
 private slots:
     void onCellClicked();
