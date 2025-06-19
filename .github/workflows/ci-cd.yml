@@ -34,15 +34,15 @@ jobs:
     - name: 📦 Archive build output
       run: |
         mkdir -p dist
-        cp -r *.pro dist/
-        cp -r *.cpp dist/
-        cp -r *.h dist/
-        cp -r *.ui dist/
+        cp -r *.pro dist/ || true
+        cp -r *.cpp dist/ || true
+        cp -r *.h dist/ || true
+        cp -r *.ui dist/ || true
         cp -r *.o dist/ || true
         cp -r Advanced_TicTacToe dist/ || true
 
     - name: 📤 Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: built-qt-app
         path: dist
